@@ -13,31 +13,23 @@ composer require coercive/token
 Usage
 -----
 ```php
-use Coercive\Security\Token
+use Coercive\Security\Token\Token;
 
 # REQUIRED : if not, Token throws you an exception
 session_start();
 
-# Create a salt string or integer
-$sMyUniqSalt = 'Hello, this is my project name (for example)';
-
 # INIT
-$ObjectToken = new Token( $sMyUniqSalt );
+$ObjectToken = new Token('This is my personal salt');
 
-# GET the current token
-$sMyToken = $ObjectToken->get();
+# CREATE a token
+$sMyToken = $ObjectToken->create('example');
 
-# MATCH a token with the current
-$sWrongToken = 'I am a wrong Token';
-
-if( $ObjectToken->match( $sWrongToken ) ) {
+# SEND this token with a form (for example)
+# and test like this
+if( $ObjectToken->verify( $sMyToken , 'example' ) ) {
     echo 'Good token !';
 } else {
     die('Wrong token detected');
 }
-
-# IF YOU CHANGE YOUR ID SESSION
-# YOU CAN RE-INIT AN ALREADY INSTANTIATED TOKEN
-$ObjectToken->init();
 
 ```
