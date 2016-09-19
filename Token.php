@@ -155,7 +155,7 @@ class Token {
 	 * @param string $sName [optional]
 	 * @param string $sReferer [optional]
 	 * @param int $iValidityTime [optional] in seconds / default : 10 min
-	 * @return string CSRF Token
+	 * @return bool
 	 */
 	public function verify($sToken, $sName = '', $sReferer = '', $iValidityTime = 600) {
 
@@ -179,6 +179,26 @@ class Token {
 		if($sReferer !== $_SESSION[$this->_sSessionName][$sName]['page']) { return false; }
 		if($this->_oDate->getTimestamp() >= $_SESSION[$this->_sSessionName][$sName]['time'] + $iValidityTime) { return false; }
 		return true;
+	}
+
+	/**
+	 * DELETE TOKEN
+	 *
+	 * @param string $sName [optional]
+	 * @return bool
+	 */
+	public function delete($sName = '') {
+
+		# AUTO SET NAME
+		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
+
+		# DELETE
+		if(isset($_SESSION[$sName])) {
+			unset($_SESSION[$sName]);
+			return true;
+		}
+
+		return false;
 	}
 
 }

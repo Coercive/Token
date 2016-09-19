@@ -28,6 +28,7 @@ $sMyToken = $ObjectToken->create('example');
 # and test like this
 if( $ObjectToken->verify( $sMyToken , 'example' ) ) {
     echo 'Good token !';
+    $ObjectToken->delete('example');
 } else {
     die('Wrong token detected');
 }
