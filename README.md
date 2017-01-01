@@ -33,4 +33,13 @@ if( $ObjectToken->verify( $sMyToken , 'example' ) ) {
     die('Wrong token detected');
 }
 
+# For form load by AJAX or other complex detection
+$ObjectToken->verify( $sMyToken , 'example', 'http://www.my-custom-referer')
+# OR
+$ObjectToken->verify( $sMyToken , 'example', [
+    'http://www.my-custom-referer-1',
+    'http://www.my-custom-referer-2',
+    'http://www.my-custom-referer-3'
+])
+
 ```
