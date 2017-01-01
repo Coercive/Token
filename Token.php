@@ -8,7 +8,7 @@ use Exception;
  * Token
  * PHP Version 	7
  *
- * @version		1.1
+ * @version		1.1.2
  * @package 	Coercive\Security\Token
  * @link		https://github.com/Coercive/Token
  *
@@ -153,14 +153,15 @@ class Token {
 	 *
 	 * @param string $sToken
 	 * @param string $sName [optional]
-	 * @param string $sReferer [optional]
+	 * @param mixed $mReferer [optional]
 	 * @param int $iValidityTime [optional] in seconds / default : 10 min
 	 * @return bool
 	 */
-	public function verify($sToken, $sName = '', $sReferer = '', $iValidityTime = 600) {
+	public function verify($sToken, $sName = '', $mReferer = [], $iValidityTime = 600) {
 
 		# AUTO SET REFERER
-		if(!$sReferer) { $sReferer = self::_getHttpReferer(); }
+		if(!$mReferer) { $mReferer = self::_getHttpReferer(); }
+		if(is_string($mReferer)) { $mReferer = (array) $mReferer; }
 
 		# AUTO SET NAME
 		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
@@ -176,7 +177,7 @@ class Token {
 
 		# VERIFY
 		if($sToken !== $_SESSION[$this->_sSessionName][$sName]['token']) { return false; }
-		if($sReferer !== $_SESSION[$this->_sSessionName][$sName]['page']) { return false; }
+		if(!in_array($_SESSION[$this->_sSessionName][$sName]['page'], $mReferer, true)) { return false; }
 		if($this->_oDate->getTimestamp() >= $_SESSION[$this->_sSessionName][$sName]['time'] + $iValidityTime) { return false; }
 		return true;
 	}
