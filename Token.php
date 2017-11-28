@@ -136,7 +136,7 @@ class Token {
 		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
 
 		# TOKEN
-		$sToken = hash('sha512', session_id() . $this->_sUniqSalt . $this->_oDate->getTimestamp(), false);
+		$sToken = hash('sha512', session_id() . $this->_sUniqSalt . uniqid(time(), true), false);
 
 		# SET
 		$_SESSION[$this->_sSessionName][$sName] = [
