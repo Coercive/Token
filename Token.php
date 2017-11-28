@@ -6,14 +6,12 @@ use Exception;
 
 /**
  * Token
- * PHP Version 	7
  *
- * @version		1.1.2
  * @package 	Coercive\Security\Token
  * @link		https://github.com/Coercive/Token
  *
  * @author  	Anthony Moral <contact@coercive.fr>
- * @copyright   2016 - 2017 Anthony Moral
+ * @copyright   2016 - 2018 Anthony Moral
  * @license 	http://www.gnu.org/copyleft/lesser.html GNU Lesser General Public License
  */
 class Token {
