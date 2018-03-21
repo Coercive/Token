@@ -192,8 +192,8 @@ class Token {
 		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
 
 		# DELETE
-		if(isset($_SESSION[$sName])) {
-			unset($_SESSION[$sName]);
+		if(isset($_SESSION[$this->_sSessionName][$sName])) {
+			unset($_SESSION[$this->_sSessionName][$sName]);
 			return true;
 		}
 
