@@ -1,7 +1,6 @@
 <?php
 namespace Coercive\Security\Token;
 
-use DateTime;
 use Exception;
 
 /**
@@ -16,60 +15,47 @@ use Exception;
  */
 class Token {
 
-	const DEFAULT_SALT = 'Coercive\Security\Token';
-	const DEFAULT_SESSION = 'csrf_token';
+	const DEFAULT_SALT = __CLASS__;
+	const DEFAULT_NAMESPACE = 'token';
 	const DEFAULT_NAME = 'global';
 
-	/** @var DateTime */
-	private $_oDate;
+	/** @var string */
+	private $salt;
 
 	/** @var string */
-	private $_sUniqSalt;
+	private $namespace;
 
 	/** @var string */
-	private $_sSessionName;
-
-	/** @var string */
-	private $_sDefaultGlobalName;
+	private $default;
 
 	/**
-	 * EXCEPTION
+	 * CUT index.php
 	 *
-	 * @param string $sMessage
-	 * @param int $sLine
-	 * @param string $sMethod
-	 * @throws Exception
+	 * @param string $request
+	 * @return string
 	 */
-	static protected function _exception($sMessage, $sLine = __LINE__, $sMethod = __METHOD__) {
-		throw new Exception("$sMessage \nMethod :  $sMethod \nLine : $sLine");
+	static private function cutIndexFile(string $request): string
+	{
+		$index = strpos($request, 'index.php');
+		if($index !== false) {
+			$request = substr($request, 0, $index);
+		}
+		return $request;
 	}
 
 	/**
 	 * CUT index.php
 	 *
-	 * @param string $sRequest
+	 * @param string $request
 	 * @return string
 	 */
-	static private function _cutIndexFile($sRequest) {
-		$iIndexPos = strpos($sRequest, 'index.php');
-		if($iIndexPos !== false) {
-			$sRequest = substr($sRequest, 0, $iIndexPos);
+	static private function cutGetParam(string $request): string
+	{
+		$get = strpos($request, '?');
+		if($get !== false) {
+			$request = substr($request, 0, $get);
 		}
-		return $sRequest;
-	}
-
-	/**
-	 * CUT index.php
-	 *
-	 * @param string $sRequest
-	 * @return string
-	 */
-	static private function _cutGetParam($sRequest) {
-		$iGetPos = strpos($sRequest, '?');
-		if($iGetPos !== false) {
-			$sRequest = substr($sRequest, 0, $iGetPos);
-		}
-		return $sRequest;
+		return $request;
 	}
 
 	/**
@@ -77,9 +63,10 @@ class Token {
 	 *
 	 * @return string
 	 */
-	static private function _getHttpReferer() {
-		$sReferer = (string) filter_input(INPUT_SERVER, 'HTTP_REFERER', FILTER_VALIDATE_URL);
-		return self::_cutIndexFile(self::_cutGetParam($sReferer));
+	static private function getHttpReferer(): string
+	{
+		$referer = (string) filter_input(INPUT_SERVER, 'HTTP_REFERER', FILTER_VALIDATE_URL);
+		return self::cutIndexFile(self::cutGetParam($referer));
 	}
 
 	/**
@@ -87,117 +74,113 @@ class Token {
 	 *
 	 * @return string
 	 */
-	static private function _getCurrentPage() {
-		$iPort = (int) filter_input(INPUT_SERVER, 'SERVER_PORT', FILTER_VALIDATE_INT);
-		$sProtocol = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $iPort === 443 ? 'https' : 'http';
-		$sHost = (string) filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-		$sRequest = (string) filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-		$sRequest = self::_cutIndexFile($sRequest);
-		return "$sProtocol://$sHost$sRequest";
+	static private function getCurrentPage(): string
+	{
+		$port = (int) filter_input(INPUT_SERVER, 'SERVER_PORT', FILTER_VALIDATE_INT);
+		$protocol = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $port === 443 ? 'https' : 'http';
+		$host = (string) filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		$request = (string) filter_input(INPUT_SERVER, 'SCRIPT_NAME', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+		$request = self::cutIndexFile($request);
+		return "$protocol://$host$request";
 	}
 
 	/**
 	 * Token constructor.
 	 *
-	 * @param string $sUniqSalt [optional]
-	 * @param string $sSessionName [optional]
-	 * @param string $sDefaultGlobalName [optional]
+	 * @param string $salt [optional]
+	 * @param string $namespace [optional]
+	 * @param string $default [optional]
 	 * @throws Exception
 	 */
-	public function __construct($sUniqSalt = '', $sSessionName = '', $sDefaultGlobalName = '') {
-
+	public function __construct(string $salt = '', string $namespace = '', $default = '')
+	{
 		# Start
-		if(session_id() === '') { self::_exception('Coercive Token needs a session is started before being launched.', __LINE__, __METHOD__); }
+		if(session_status() !== PHP_SESSION_ACTIVE || !session_id()) {
+			throw new Exception('Coercive Token needs a session is started before being launched.');
+		}
 
 		# SET Code
-		$this->_sUniqSalt = $sUniqSalt ? (string)$sUniqSalt : self::DEFAULT_SALT;
-		$this->_sSessionName = $sSessionName ? (string)$sDefaultGlobalName : self::DEFAULT_SESSION;
-		$this->_sDefaultGlobalName = $sDefaultGlobalName ? (string)$sSessionName : self::DEFAULT_NAME;
-
-		# Actual DateTime
-		$this->_oDate = new DateTime;
+		$this->salt = $salt ?: self::DEFAULT_SALT;
+		$this->namespace = $namespace ?: self::DEFAULT_NAMESPACE;
+		$this->default = $default ?: self::DEFAULT_NAME;
 	}
 
 	/**
 	 * CREATE TOKEN
 	 *
-	 * @param string $sName [optional]
-	 * @param string $sCurrentPage [optional]
+	 * @param string $name [optional]
+	 * @param string $page [optional]
 	 * @return string CSRF Token
 	 */
-	public function create($sName = '', $sCurrentPage = '') {
-
+	public function create(string $name = '', $page = ''): string
+	{
 		# AUTO SET REFERER
-		if(!$sCurrentPage) { $sCurrentPage = self::_getCurrentPage(); }
+		if(!$page) { $page = self::getCurrentPage(); }
 
 		# AUTO SET NAME
-		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
+		if(!$name) { $name = $this->default; }
 
 		# TOKEN
-		$sToken = hash('sha512', session_id() . $this->_sUniqSalt . uniqid(time(), true), false);
+		$token = hash('sha512', session_id() . $this->salt . uniqid(rand(), true), false);
 
 		# SET
-		$_SESSION[$this->_sSessionName][$sName] = [
-			'page' => $sCurrentPage,
-			'token' => $sToken,
-			'time' => $this->_oDate->getTimestamp()
+		$_SESSION[$this->namespace][$name] = [
+			'page' => $page,
+			'token' => $token,
+			'time' => time()
 		];
 
-		return $sToken;
+		return $token;
 	}
 
 	/**
 	 * CREATE TOKEN
 	 *
-	 * @param string $sToken
-	 * @param string $sName [optional]
-	 * @param mixed $mReferer [optional]
-	 * @param int $iValidityTime [optional] in seconds / default : 10 min
+	 * @param string $token
+	 * @param string $name [optional]
+	 * @param array $referers [optional]
+	 * @param int $length [optional] in seconds / default : 10 min
 	 * @return bool
 	 */
-	public function verify($sToken, $sName = '', $mReferer = [], $iValidityTime = 600) {
-
+	public function verify(string $token, $name = '', $referers = [], $length = 600)
+	{
 		# AUTO SET REFERER
-		if(!$mReferer) { $mReferer = self::_getHttpReferer(); }
-		if(is_string($mReferer)) { $mReferer = (array) $mReferer; }
+		if(!$referers) { $referers = [self::getHttpReferer()]; }
 
 		# AUTO SET NAME
-		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
+		if(!$name) { $name = $this->default; }
 
 		# ERROR
-		if(    empty($_SESSION[$this->_sSessionName])
-			|| empty($_SESSION[$this->_sSessionName][$sName])
-			|| !isset($_SESSION[$this->_sSessionName][$sName]['page'])
-			|| empty($_SESSION[$this->_sSessionName][$sName]['token'])
-			|| empty($_SESSION[$this->_sSessionName][$sName]['time'])) {
+		if(!isset($_SESSION[$this->namespace][$name]['page'])
+			|| empty($_SESSION[$this->namespace][$name]['token'])
+			|| empty($_SESSION[$this->namespace][$name]['time'])) {
 			return false;
 		}
 
 		# VERIFY
-		if($sToken !== $_SESSION[$this->_sSessionName][$sName]['token']) { return false; }
-		if(!in_array($_SESSION[$this->_sSessionName][$sName]['page'], $mReferer, true)) { return false; }
-		if($this->_oDate->getTimestamp() >= $_SESSION[$this->_sSessionName][$sName]['time'] + $iValidityTime) { return false; }
+		if($token !== $_SESSION[$this->namespace][$name]['token']) { return false; }
+		if(!in_array($_SESSION[$this->namespace][$name]['page'], $referers, true)) { return false; }
+		if(time() >= $_SESSION[$this->namespace][$name]['time'] + $length) { return false; }
 		return true;
 	}
 
 	/**
 	 * DELETE TOKEN
 	 *
-	 * @param string $sName [optional]
+	 * @param string $name [optional]
 	 * @return bool
 	 */
-	public function delete($sName = '') {
-
+	public function delete(string $name = ''): bool
+	{
 		# AUTO SET NAME
-		if(!$sName) { $sName = $this->_sDefaultGlobalName; }
+		if(!$name) { $name = $this->default; }
 
 		# DELETE
-		if(isset($_SESSION[$this->_sSessionName][$sName])) {
-			unset($_SESSION[$this->_sSessionName][$sName]);
+		if(isset($_SESSION[$this->namespace][$name])) {
+			unset($_SESSION[$this->namespace][$name]);
 			return true;
 		}
 
 		return false;
 	}
-
 }
