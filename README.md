@@ -13,30 +13,31 @@ composer require coercive/token
 Usage
 -----
 ```php
+<?php
 use Coercive\Security\Token\Token;
 
 # REQUIRED : if not, Token throws you an exception
 session_start();
 
 # INIT
-$ObjectToken = new Token('This is my personal salt');
+$Token = new Token('mySalt0123');
 
 # CREATE a token
-$sMyToken = $ObjectToken->create('example');
+$sMyKey = $Token->create('example');
 
 # SEND this token with a form (for example)
 # and test like this
-if( $ObjectToken->verify( $sMyToken , 'example' ) ) {
+if( $Token->verify( $sMyKey , 'example' ) ) {
     echo 'Good token !';
-    $ObjectToken->delete('example');
+    $Token->delete('example');
 } else {
     die('Wrong token detected');
 }
 
 # For form load by AJAX or other complex detection
-$ObjectToken->verify( $sMyToken , 'example', 'http://www.my-custom-referer')
+$Token->verify( $sMyKey , 'example', 'http://www.my-custom-referer')
 # OR
-$ObjectToken->verify( $sMyToken , 'example', [
+$Token->verify( $sMyKey , 'example', [
     'http://www.my-custom-referer-1',
     'http://www.my-custom-referer-2',
     'http://www.my-custom-referer-3'
