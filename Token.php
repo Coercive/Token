@@ -1,6 +1,7 @@
 <?php
 namespace Coercive\Security\Token;
 
+use DateTime;
 use Exception;
 
 /**
@@ -10,11 +11,11 @@ use Exception;
  * @link		https://github.com/Coercive/Token
  *
  * @author  	Anthony Moral <contact@coercive.fr>
- * @copyright   2016 - 2018 Anthony Moral
- * @license 	http://www.gnu.org/copyleft/lesser.html GNU Lesser General Public License
+ * @copyright   2019 Anthony Moral
+ * @license 	MIT
  */
-class Token {
-
+class Token
+{
 	const DEFAULT_SALT = __CLASS__;
 	const DEFAULT_NAMESPACE = 'token';
 	const DEFAULT_NAME = 'global';
@@ -182,5 +183,19 @@ class Token {
 		}
 
 		return false;
+	}
+	
+	/**
+	 * Timer Token
+	 *
+	 * @return string
+	 */
+	public function timer(string $format = 'Ymd', DateTime $date = null): string
+	{
+		# Auto Current DateTime
+		if(!$date) { $date = new DateTime; }
+
+		# Create uniq token
+		return hash('sha512', $this->salt . $date->format($format));
 	}
 }
