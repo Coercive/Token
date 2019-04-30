@@ -250,16 +250,16 @@ class Token
 
 		return false;
 	}
-	
+
 	/**
 	 * Timer Token
 	 *
+	 * @param string $crypt [optional]
 	 * @param string $format [optional]
 	 * @param DateTime $date [optional]
-	 * @param string $crypt [optional]
 	 * @return string
 	 */
-	public function timer(string $format = 'Ymd', DateTime $date = null, string $crypt = ''): string
+	public function timer(string $crypt = '', string $format = 'Ymd', DateTime $date = null): string
 	{
 		# Auto Current DateTime
 		if(!$date) { $date = new DateTime; }
