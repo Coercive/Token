@@ -19,6 +19,10 @@ class Token
 	const DEFAULT_SALT = __CLASS__;
 	const DEFAULT_NAMESPACE = 'token';
 	const DEFAULT_NAME = 'global';
+	const DEFAULT_LENGTH = 128;
+
+	/** @var int */
+	private $length;
 
 	/** @var string */
 	private $salt;
@@ -86,14 +90,26 @@ class Token
 	}
 
 	/**
+	 * OPENSSL_RANDOM_PSEUDO_BYTES
+	 *
+	 * @param int $length [optional]
+	 * @return string
+	 */
+	static public function rand(int $length = self::DEFAULT_LENGTH): string
+	{
+		return bin2hex(openssl_random_pseudo_bytes($length));
+	}
+
+	/**
 	 * Token constructor.
 	 *
+	 * @param int $length [optional]
 	 * @param string $salt [optional]
 	 * @param string $namespace [optional]
 	 * @param string $default [optional]
 	 * @throws Exception
 	 */
-	public function __construct(string $salt = '', string $namespace = '', $default = '')
+	public function __construct(int $length = 0, string $salt = '', string $namespace = '', string $default = '')
 	{
 		# Start
 		if(session_status() !== PHP_SESSION_ACTIVE || !session_id()) {
@@ -101,9 +117,58 @@ class Token
 		}
 
 		# SET Code
+		$this->length = $length ?: self::DEFAULT_LENGTH;
 		$this->salt = $salt ?: self::DEFAULT_SALT;
 		$this->namespace = $namespace ?: self::DEFAULT_NAMESPACE;
 		$this->default = $default ?: self::DEFAULT_NAME;
+	}
+
+	/**
+	 * Set the salt for hash token
+	 *
+	 * @param string $salt [optional]
+	 * @return Token
+	 */
+	public function setSalt(string $salt = ''): Token
+	{
+		$this->salt = $salt ?: self::DEFAULT_SALT;
+		return $this;
+	}
+
+	/**
+	 * Set the session namespace
+	 *
+	 * @param string $namespace [optional]
+	 * @return Token
+	 */
+	public function setNamespace(string $namespace = ''): Token
+	{
+		$this->namespace = $namespace ?: self::DEFAULT_NAMESPACE;
+		return $this;
+	}
+
+	/**
+	 * Set the default name for noname token
+	 *
+	 * @param string $default [optional]
+	 * @return Token
+	 */
+	public function setDefaultName(string $default = ''): Token
+	{
+		$this->default = $default ?: self::DEFAULT_NAME;
+		return $this;
+	}
+
+	/**
+	 * Set the openssl_random_pseudo_bytes length for the random method
+	 *
+	 * @param int $length [optional]
+	 * @return Token
+	 */
+	public function setRandLength(int $length = 0): Token
+	{
+		$this->length = $length ?: self::DEFAULT_LENGTH;
+		return $this;
 	}
 
 	/**
@@ -115,22 +180,23 @@ class Token
 	 */
 	public function create(string $name = '', $page = ''): string
 	{
-		# AUTO SET REFERER
+		# Auto set referer
 		if(!$page) { $page = self::getCurrentPage(); }
 
-		# AUTO SET NAME
+		# Auto set name
 		if(!$name) { $name = $this->default; }
 
-		# TOKEN
-		$token = hash('sha512', session_id() . $this->salt . uniqid(rand(), true), false);
+		# Generate token
+		$token = $this->uniqId();
 
-		# SET
+		# Set in session
 		$_SESSION[$this->namespace][$name] = [
 			'page' => $page,
 			'token' => $token,
 			'time' => time()
 		];
 
+		# Maintain chainability
 		return $token;
 	}
 
@@ -188,14 +254,27 @@ class Token
 	/**
 	 * Timer Token
 	 *
+	 * @param string $format [optional]
+	 * @param DateTime $date [optional]
+	 * @param string $crypt [optional]
 	 * @return string
 	 */
-	public function timer(string $format = 'Ymd', DateTime $date = null): string
+	public function timer(string $format = 'Ymd', DateTime $date = null, string $crypt = ''): string
 	{
 		# Auto Current DateTime
 		if(!$date) { $date = new DateTime; }
 
 		# Create uniq token
-		return hash('sha512', $this->salt . $date->format($format));
+		return hash('sha512', $this->salt . $date->format($format) . $crypt);
+	}
+
+	/**
+	 * Uniq ID with openssl_random_pseudo_bytes
+	 *
+	 * @return string
+	 */
+	public function uniqId(): string
+	{
+		return hash('sha512', session_id() . $this->salt . self::rand($this->length), false);
 	}
 }
