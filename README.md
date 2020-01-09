@@ -32,7 +32,7 @@ $myKey = $Token->create('example');
 
 # SEND this token with a form (for example)
 # and test like this
-if( $Token->verify( $myKey , 'example' ) ) {
+if( $Token->check( $myKey , 'example' ) ) {
     echo 'Good token !';
     $Token->delete('example');
 } else {
@@ -46,15 +46,15 @@ For form load by AJAX or other complex detection
 ```php
 <?php
 
-$Token->verify( $myKey , 'example', 'http://www.my-custom-referer')
+$Token->check( $myKey , 'example', 'http://www.my-custom-referer');
 
 # OR
 
-$Token->verify( $myKey , 'example', [
+$Token->check( $myKey , 'example', [
     'http://www.my-custom-referer-1',
     'http://www.my-custom-referer-2',
     'http://www.my-custom-referer-3'
-])
+]);
 ```
 
 Get token for others usages
@@ -63,17 +63,17 @@ Get token for others usages
 <?php
 
 # A basic random string
-Token::rand(256)
+Token::rand(256);
 
 # A uniq id based on session, salt, random string...
-$Token->uniqId()
+$Token->uniqId();
 
 # A basic (unsafe) token based on datetime
-$Token->timer()
+$Token->timer();
 
 # You can use a crypt for customise the timer token
 $crypt = 1234567890;
-$Token->timer(crypt)
+$Token->timer(crypt);
 
 
 ```

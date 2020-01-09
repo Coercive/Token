@@ -5,13 +5,13 @@ use DateTime;
 use Exception;
 
 /**
- * Token
+ * CSRF Token
  *
  * @package 	Coercive\Security\Token
  * @link		https://github.com/Coercive/Token
  *
  * @author  	Anthony Moral <contact@coercive.fr>
- * @copyright   2019 Anthony Moral
+ * @copyright   2020 Anthony Moral
  * @license 	MIT
  */
 class Token
@@ -49,7 +49,7 @@ class Token
 	}
 
 	/**
-	 * CUT index.php
+	 * CUT query part
 	 *
 	 * @param string $request
 	 * @return string
@@ -64,7 +64,7 @@ class Token
 	}
 
 	/**
-	 * HTTP REFERER SERVER VAR
+	 * HTTP Referer server data
 	 *
 	 * @return string
 	 */
@@ -75,7 +75,7 @@ class Token
 	}
 
 	/**
-	 * HTTP REFERER SERVER VAR
+	 * HTTP Server current page
 	 *
 	 * @return string
 	 */
@@ -90,7 +90,7 @@ class Token
 	}
 
 	/**
-	 * OPENSSL_RANDOM_PSEUDO_BYTES
+	 * OpenSSL random pseudo bytes
 	 *
 	 * @param int $length [optional]
 	 * @return string
@@ -172,25 +172,29 @@ class Token
 	}
 
 	/**
-	 * CREATE TOKEN
+	 * Create token
 	 *
 	 * @param string $name [optional]
 	 * @param string $page [optional]
 	 * @return string CSRF Token
 	 */
-	public function create(string $name = '', $page = ''): string
+	public function create(string $name = '', string $page = ''): string
 	{
 		# Auto set referer
-		if(!$page) { $page = self::getCurrentPage(); }
+		if(!$page) {
+			$page = self::getCurrentPage();
+		}
 
 		# Auto set name
-		if(!$name) { $name = $this->default; }
+		if(!$name) {
+			$name = $this->default;
+		}
 
 		# Generate token
 		$token = $this->uniqId();
 
 		# Set in session
-		$_SESSION[$this->namespace][$name] = [
+		$_SESSION[$this->namespace][$name][] = [
 			'page' => $page,
 			'token' => $token,
 			'time' => time()
@@ -201,7 +205,7 @@ class Token
 	}
 
 	/**
-	 * CREATE TOKEN
+	 * Check token
 	 *
 	 * @param string $token
 	 * @param string $name [optional]
@@ -209,45 +213,80 @@ class Token
 	 * @param int $length [optional] in seconds / default : 10 min
 	 * @return bool
 	 */
-	public function verify(string $token, $name = '', $referers = [], $length = 600)
+	public function check(string $token, string $name = '', array $referers = [], int $length = 600)
 	{
-		# AUTO SET REFERER
-		if(!$referers) { $referers = [self::getHttpReferer()]; }
+		# Auto set referer
+		if(!$referers) {
+			$referers = [self::getHttpReferer()];
+		}
 
-		# AUTO SET NAME
-		if(!$name) { $name = $this->default; }
+		# Auto set name
+		if(!$name) {
+			$name = $this->default;
+		}
 
-		# ERROR
-		if(!isset($_SESSION[$this->namespace][$name]['page'])
-			|| empty($_SESSION[$this->namespace][$name]['token'])
-			|| empty($_SESSION[$this->namespace][$name]['time'])) {
+		# Retreive targeted token
+		$session = [];
+		foreach ($_SESSION[$this->namespace][$name] ?? [] as $item) {
+			if(!empty($item['token']) && $token === $item['token']) {
+				$session = $item;
+				break;
+			}
+		}
+		if(!isset($session['page'])
+			|| empty($session['token'])
+			|| empty($session['time'])) {
 			return false;
 		}
 
-		# VERIFY
-		if($token !== $_SESSION[$this->namespace][$name]['token']) { return false; }
-		if(!in_array($_SESSION[$this->namespace][$name]['page'], $referers, true)) { return false; }
-		if(time() >= $_SESSION[$this->namespace][$name]['time'] + $length) { return false; }
+		# Checks
+		if($token !== $session['token']) {
+			return false;
+		}
+		if(!in_array($session['page'], $referers, true)) {
+			return false;
+		}
+		if(time() >= $session['time'] + $length) {
+			return false;
+		}
 		return true;
 	}
 
 	/**
-	 * DELETE TOKEN
+	 * Delete token
 	 *
 	 * @param string $name [optional]
+	 * @param string $token [optional]
 	 * @return bool
 	 */
-	public function delete(string $name = ''): bool
+	public function delete(string $name = '', string $token = ''): bool
 	{
-		# AUTO SET NAME
-		if(!$name) { $name = $this->default; }
-
-		# DELETE
-		if(isset($_SESSION[$this->namespace][$name])) {
-			unset($_SESSION[$this->namespace][$name]);
-			return true;
+		# Auto set name
+		if(!$name) {
+			$name = $this->default;
 		}
 
+		# Delete
+		if(isset($_SESSION[$this->namespace][$name])) {
+
+			# Targeted
+			if($token) {
+				$nb = 0;
+				foreach ($_SESSION[$this->namespace][$name] ?? [] as $k => $item) {
+					if(!empty($item['token']) && $token === $item['token']) {
+						unset($_SESSION[$this->namespace][$name][$k]);
+						$nb++;
+					}
+				}
+				return $nb > 0;
+			}
+
+			# All
+			else {
+				unset($_SESSION[$this->namespace][$name]);
+				return true;
+			}
+		}
 		return false;
 	}
 
