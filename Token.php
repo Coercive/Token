@@ -22,6 +22,9 @@ class Token
 	const DEFAULT_LENGTH = 128;
 
 	/** @var int */
+	private $max = 0;
+
+	/** @var int */
 	private $length;
 
 	/** @var string */
@@ -172,6 +175,18 @@ class Token
 	}
 
 	/**
+	 * Set maximum limit for opened token for a single id
+	 *
+	 * @param int $limit [optional] 0 === unlimited
+	 * @return Token
+	 */
+	public function setMaxOpened(int $limit = 0): Token
+	{
+		$this->max = $limit;
+		return $this;
+	}
+
+	/**
 	 * Create token
 	 *
 	 * @param string $name [optional]
@@ -199,6 +214,13 @@ class Token
 			'token' => $token,
 			'time' => time()
 		];
+
+		# Handle limit
+		if($this->max) {
+			while(count($_SESSION[$this->namespace][$name]) > $this->max) {
+				array_shift($_SESSION[$this->namespace][$name]);
+			}
+		}
 
 		# Maintain chainability
 		return $token;
