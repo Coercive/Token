@@ -191,9 +191,10 @@ class Token
 	 *
 	 * @param string $name [optional]
 	 * @param string $page [optional]
+	 * @param int $max [optional] 0 === unlimited
 	 * @return string CSRF Token
 	 */
-	public function create(string $name = '', string $page = ''): string
+	public function create(string $name = '', string $page = '', int $max = null): string
 	{
 		# Auto set referer
 		if(!$page) {
@@ -216,7 +217,11 @@ class Token
 		];
 
 		# Handle limit
-		if($this->max) {
+		$limit = $this->max;
+		if($max !== null) {
+			$limit = $max;
+		}
+		if($limit) {
 			while(count($_SESSION[$this->namespace][$name]) > $this->max) {
 				array_shift($_SESSION[$this->namespace][$name]);
 			}
