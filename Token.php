@@ -222,7 +222,7 @@ class Token
 			$limit = $max;
 		}
 		if($limit) {
-			while(count($_SESSION[$this->namespace][$name]) > $this->max) {
+			while(count($_SESSION[$this->namespace][$name]) > $limit) {
 				array_shift($_SESSION[$this->namespace][$name]);
 			}
 		}
